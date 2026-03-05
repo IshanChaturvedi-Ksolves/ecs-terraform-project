@@ -1,0 +1,49 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::562613557061:role/github-actions-ecs-deploy
+          aws-region: ap-south-1
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 \
+          | docker login --username AWS --password-stdin 562613557061.dkr.ecr.ap-south-1.amazonaws.com
+
+      - name: Build Docker image
+        run: |
+          docker build -t ecs-node-app ./app
+
+      - name: Tag Docker image
+        run: |
+          docker tag ecs-node-app:latest 562613557061.dkr.ecr.ap-south-1.amazonaws.com/ecs-node-app:latest
+
+      - name: Push Docker image
+        run: |
+          docker push 562613557061.dkr.ecr.ap-south-1.amazonaws.com/ecs-node-app:latest
+
+      - name: Force ECS deployment
+        run: |
+          aws ecs update-service \
+            --cluster ecs-node-cluster \
+            --service ecs-node-service \
+            --force-new-deployment

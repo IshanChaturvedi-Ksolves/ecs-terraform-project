@@ -6,3 +6,8 @@ output "ecr_repository_url" {
 output "rds_endpoint" { 
   value = aws_db_instance.postgres.endpoint
 }
+
+
+output "github_actions_role_arn" {
+  value = aws_iam_role.github_actions_role.arn
+}
