@@ -1,63 +1,68 @@
 name: ECS Deploy Pipeline
 
 on:
-push:
-branches:
-- main
+  push:
+    branches:
+      - main
 
 env:
-AWS_REGION: ap-south-1
-ECR_REPOSITORY: ecs-node-app
-ECS_CLUSTER: ecs-node-cluster
-ECS_SERVICE: ecs-node-service
-ECS_TASK_DEFINITION: ecs-node-app-task
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: ecs-node-app
+  ECS_CLUSTER: ecs-node-cluster
+  ECS_SERVICE: ecs-node-service
 
 jobs:
-deploy:
-runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for requesting the JWT (OIDC)
+      contents: read  # Required for actions/checkout
 
-```
-steps:
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-- name: Checkout Code
-  uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::562613557061:role/github-actions-ecs-deploy
+          aws-region: ${{ env.AWS_REGION }}
 
-- name: Configure AWS Credentials
-  uses: aws-actions/configure-aws-credentials@v4
-  with:
-    role-to-assume: arn:aws:iam::562613557061:role/github-actions-ecs-deploy
-    aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-- name: Login to ECR
-  uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and Tag Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./app
 
-- name: Build Docker Image
-  run: |
-    docker build -t $ECR_REPOSITORY:${{ github.sha }} ./app
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install wget -y
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.1_Linux-64bit.deb
+          sudo dpkg -i trivy_0.50.1_Linux-64bit.deb
 
-- name: Install Trivy
-  run: |
-    sudo apt-get install wget -y
-    wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.1_Linux-64bit.deb
-    sudo dpkg -i trivy_0.50.1_Linux-64bit.deb
+      - name: Scan Docker Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          trivy image $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-- name: Scan Docker Image
-  run: |
-    trivy image $ECR_REPOSITORY:${{ github.sha }}
+      - name: Push Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-- name: Tag Image
-  run: |
-    docker tag $ECR_REPOSITORY:${{ github.sha }} \
-    562613557061.dkr.ecr.ap-south-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
-
-- name: Push Image to ECR
-  run: |
-    docker push 562613557061.dkr.ecr.ap-south-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
-
-- name: Update ECS Service
-  run: |
-    aws ecs update-service \
-    --cluster $ECS_CLUSTER \
-    --service $ECS_SERVICE \
-    --force-new-deployment
-```
+      - name: Force ECS Deployment
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment
