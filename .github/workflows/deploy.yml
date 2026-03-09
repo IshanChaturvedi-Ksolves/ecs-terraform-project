@@ -10,6 +10,7 @@ env:
   ECR_REPOSITORY: ecs-node-app
   ECS_CLUSTER: ecs-node-cluster
   ECS_SERVICE: ecs-node-service
+  ECS_TASK_DEFINITION: ecs-node-app-task
 
 jobs:
   deploy:
@@ -54,7 +55,13 @@ jobs:
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Force ECS Deployment
+      - name: Get current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query taskDefinition > task-def.json
+
+      - name: Deploy new revision
         run: |
           aws ecs update-service \
             --cluster ${{ env.ECS_CLUSTER }} \
