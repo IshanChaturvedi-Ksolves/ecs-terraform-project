@@ -54,12 +54,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Get current task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
-            --query taskDefinition > task-def.json
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Deploy new revision
         run: |
