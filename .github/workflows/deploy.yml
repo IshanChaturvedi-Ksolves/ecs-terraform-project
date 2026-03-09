@@ -1,49 +1,63 @@
-name: Deploy to ECS
+name: ECS Deploy Pipeline
 
 on:
-  push:
-    branches:
-      - main
+push:
+branches:
+- main
 
-permissions:
-  id-token: write
-  contents: read
+env:
+AWS_REGION: ap-south-1
+ECR_REPOSITORY: ecs-node-app
+ECS_CLUSTER: ecs-node-cluster
+ECS_SERVICE: ecs-node-service
+ECS_TASK_DEFINITION: ecs-node-app-task
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+deploy:
+runs-on: ubuntu-latest
 
-    steps:
+```
+steps:
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
+- name: Checkout Code
+  uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::562613557061:role/github-actions-ecs-deploy
-          aws-region: ap-south-1
+- name: Configure AWS Credentials
+  uses: aws-actions/configure-aws-credentials@v4
+  with:
+    role-to-assume: arn:aws:iam::562613557061:role/github-actions-ecs-deploy
+    aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
-        run: |
-          aws ecr get-login-password --region ap-south-1 \
-          | docker login --username AWS --password-stdin 562613557061.dkr.ecr.ap-south-1.amazonaws.com
+- name: Login to ECR
+  uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
-        run: |
-          docker build -t ecs-node-app ./app
+- name: Build Docker Image
+  run: |
+    docker build -t $ECR_REPOSITORY:${{ github.sha }} ./app
 
-      - name: Tag Docker image
-        run: |
-          docker tag ecs-node-app:latest 562613557061.dkr.ecr.ap-south-1.amazonaws.com/ecs-node-app:latest
+- name: Install Trivy
+  run: |
+    sudo apt-get install wget -y
+    wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.1_Linux-64bit.deb
+    sudo dpkg -i trivy_0.50.1_Linux-64bit.deb
 
-      - name: Push Docker image
-        run: |
-          docker push 562613557061.dkr.ecr.ap-south-1.amazonaws.com/ecs-node-app:latest
+- name: Scan Docker Image
+  run: |
+    trivy image $ECR_REPOSITORY:${{ github.sha }}
 
-      - name: Force ECS deployment
-        run: |
-          aws ecs update-service \
-            --cluster ecs-node-cluster \
-            --service ecs-node-service \
-            --force-new-deployment
+- name: Tag Image
+  run: |
+    docker tag $ECR_REPOSITORY:${{ github.sha }} \
+    562613557061.dkr.ecr.ap-south-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
+
+- name: Push Image to ECR
+  run: |
+    docker push 562613557061.dkr.ecr.ap-south-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
+
+- name: Update ECS Service
+  run: |
+    aws ecs update-service \
+    --cluster $ECS_CLUSTER \
+    --service $ECS_SERVICE \
+    --force-new-deployment
+```
