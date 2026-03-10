@@ -7,7 +7,6 @@ output "rds_endpoint" {
   value = aws_db_instance.postgres.endpoint
 }
 
-
-output "github_actions_role_arn" {
-  value = aws_iam_role.github_actions_role.arn
+output "alb_url" {
+  value = aws_lb.app_alb.dns_name
 }
