@@ -3,7 +3,7 @@ output "ecr_repository_url" {
 }
 
 
-output "rds_endpoint" { 
+output "rds_endpoint" {
   value = aws_db_instance.postgres.endpoint
 }
 

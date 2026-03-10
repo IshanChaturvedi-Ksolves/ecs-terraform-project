@@ -14,7 +14,7 @@ provider "aws" {
 
 resource "aws_ecr_repository" "app_repo" {
   name         = "ecs-node-app"
-  force_delete = true   # 👈 ADD THIS
+  force_delete = true # 👈 ADD THIS
 
   image_scanning_configuration {
     scan_on_push = true
@@ -243,7 +243,7 @@ resource "aws_security_group" "rds_sg" {
 
 
 resource "aws_db_subnet_group" "rds_subnet_group" {
-  name       = "ecs-rds-subnet-group"
+  name = "ecs-rds-subnet-group"
   subnet_ids = [
     aws_subnet.private_subnet_1.id,
     aws_subnet.private_subnet_2.id
@@ -257,19 +257,19 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
 
 
 resource "aws_db_instance" "postgres" {
-  identifier              = "ecs-postgres-db"
-  engine                  = "postgres"
-  engine_version          = "15"
-  instance_class          = "db.t3.micro"
-  allocated_storage       = 20
-  db_name                 = "appdb"
-  username                = "appuser"
-  password                = "AppPassword123!"
-  db_subnet_group_name    = aws_db_subnet_group.rds_subnet_group.name
-  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
-  publicly_accessible     = false
-  skip_final_snapshot     = true
-  multi_az                = false
+  identifier             = "ecs-postgres-db"
+  engine                 = "postgres"
+  engine_version         = "15"
+  instance_class         = "db.t3.micro"
+  allocated_storage      = 20
+  db_name                = "appdb"
+  username               = "appuser"
+  password               = "AppPassword123!"
+  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
+  publicly_accessible    = false
+  skip_final_snapshot    = true
+  multi_az               = false
 
   tags = {
     Name = "ecs-postgres-db"
@@ -412,11 +412,11 @@ resource "aws_ecs_service" "app_service" {
   desired_count   = 1
 
   network_configuration {
-    subnets         = [
+    subnets = [
       aws_subnet.private_subnet_1.id,
       aws_subnet.private_subnet_2.id
     ]
-    security_groups = [aws_security_group.ecs_sg.id]
+    security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = false
   }
 
