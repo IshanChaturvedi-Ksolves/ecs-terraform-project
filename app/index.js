@@ -7,7 +7,7 @@ const port = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-/* -------------------- DATABASE CONNECTION -------------------- */
+/* ---------------- DATABASE CONNECTION ---------------- */
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -18,7 +18,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-/* -------------------- DB INITIALIZATION -------------------- */
+/* ---------------- INITIALIZE TABLE ---------------- */
 
 (async () => {
   try {
@@ -36,13 +36,13 @@ const pool = new Pool({
   }
 })();
 
-/* -------------------- HEALTH CHECK FOR ALB -------------------- */
+/* ---------------- HEALTH CHECK ---------------- */
 
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
-/* -------------------- API TEST ENDPOINT -------------------- */
+/* ---------------- API TEST ENDPOINT ---------------- */
 
 app.get("/api", (req, res) => {
   res.json({
@@ -50,7 +50,7 @@ app.get("/api", (req, res) => {
   });
 });
 
-/* -------------------- HOME PAGE -------------------- */
+/* ---------------- HOME PAGE ---------------- */
 
 app.get("/", async (req, res) => {
   try {
@@ -59,126 +59,220 @@ app.get("/", async (req, res) => {
     const todosHTML = result.rows
       .map(
         (todo) => `
-      <li class="${todo.completed ? "completed" : ""}">
-        
-        <form method="POST" action="/toggle/${todo.id}" style="display:inline;">
-          <input type="checkbox" onchange="this.form.submit()" ${
-            todo.completed ? "checked" : ""
-          } />
-        </form>
+        <li class="${todo.completed ? "completed" : ""}">
+          
+          <form method="POST" action="/toggle/${todo.id}" style="display:inline;">
+            <input type="checkbox" onchange="this.form.submit()" ${
+              todo.completed ? "checked" : ""
+            } />
+          </form>
 
-        <span>${todo.task}</span>
+          <span>${todo.task}</span>
 
-        <form method="POST" action="/edit/${todo.id}" style="display:inline;">
-          <input name="updatedTask" placeholder="Edit task" required />
-          <button class="edit-btn">Update</button>
-        </form>
+          <div>
 
-        <form method="POST" action="/delete/${todo.id}" style="display:inline;">
-          <button class="delete-btn">Delete</button>
-        </form>
+          <form method="POST" action="/edit/${todo.id}" style="display:inline;">
+            <input name="updatedTask" placeholder="Edit task" required />
+            <button class="edit-btn">Update</button>
+          </form>
 
-      </li>
-    `
+          <form method="POST" action="/delete/${todo.id}" style="display:inline;">
+            <button class="delete-btn">Delete</button>
+          </form>
+
+          </div>
+
+        </li>
+      `
       )
       .join("");
 
     res.send(`
-    <html>
-      <head>
-        <title>Cloud Todo App</title>
+<html>
 
-        <style>
-          body {
-            font-family: Arial;
-            background: #f4f6f9;
-            padding: 40px;
-          }
+<head>
 
-          .container {
-            max-width: 600px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-          }
+<title>Cloud Todo App</title>
 
-          h1 {
-            text-align: center;
-          }
+<style>
 
-          input[type="text"], input[name="updatedTask"] {
-            padding: 8px;
-            margin-right: 5px;
-          }
+*{
+box-sizing:border-box;
+}
 
-          button {
-            padding: 6px 10px;
-            border: none;
-            cursor: pointer;
-          }
+body{
 
-          .edit-btn {
-            background: #007bff;
-            color: white;
-          }
+font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+background: linear-gradient(135deg,#667eea,#764ba2);
+height:100vh;
+margin:0;
 
-          .delete-btn {
-            background: #dc3545;
-            color: white;
-          }
+display:flex;
+justify-content:center;
+align-items:flex-start;
 
-          li {
-            margin: 10px 0;
-            list-style: none;
-          }
+padding-top:60px;
 
-          .completed span {
-            text-decoration: line-through;
-            color: gray;
-          }
+}
 
-        </style>
-      </head>
+.container{
 
-      <body>
+width:600px;
+background:white;
+padding:30px;
 
-        <div class="container">
+border-radius:12px;
 
-          <h1>Cloud Todo App 🚀</h1>
+box-shadow:0 15px 40px rgba(0,0,0,0.2);
 
-          <form method="POST" action="/add">
-            <input type="text" name="task" placeholder="Enter task" required />
-            <button>Add</button>
-          </form>
+}
 
-          <ul>
-            ${todosHTML}
-          </ul>
+h1{
 
-        </div>
+text-align:center;
+margin-bottom:25px;
+color:#333;
 
-      </body>
+}
 
-    </html>
-    `);
+form{
+
+margin-bottom:10px;
+
+}
+
+input[type="text"],input[name="updatedTask"]{
+
+padding:10px;
+border-radius:6px;
+
+border:1px solid #ccc;
+width:60%;
+
+}
+
+button{
+
+padding:8px 12px;
+
+border-radius:6px;
+border:none;
+
+cursor:pointer;
+
+margin-left:5px;
+font-weight:500;
+
+}
+
+button:hover{
+
+opacity:0.9;
+
+}
+
+.add-btn{
+
+background:#28a745;
+color:white;
+
+}
+
+.edit-btn{
+
+background:#007bff;
+color:white;
+
+}
+
+.delete-btn{
+
+background:#dc3545;
+color:white;
+
+}
+
+ul{
+
+padding:0;
+margin-top:20px;
+
+}
+
+li{
+
+list-style:none;
+background:#f8f9fa;
+
+padding:12px;
+
+margin-bottom:10px;
+
+border-radius:6px;
+
+display:flex;
+align-items:center;
+justify-content:space-between;
+
+}
+
+li span{
+
+flex:1;
+margin-left:10px;
+
+}
+
+.completed span{
+
+text-decoration:line-through;
+color:gray;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Cloud Todo App 🚀</h1>
+
+<form method="POST" action="/add">
+
+<input type="text" name="task" placeholder="Enter task" required/>
+
+<button class="add-btn">Add Task</button>
+
+</form>
+
+<ul>
+
+${todosHTML}
+
+</ul>
+
+</div>
+
+</body>
+
+</html>
+`);
   } catch (err) {
     console.error("Database Error:", err);
     res.send("Database connection failed");
   }
 });
 
-/* -------------------- ADD TASK -------------------- */
+/* ---------------- ADD TASK ---------------- */
 
 app.post("/add", async (req, res) => {
   try {
     const { task } = req.body;
 
-    await pool.query(
-      "INSERT INTO todos (task) VALUES ($1)",
-      [task]
-    );
+    await pool.query("INSERT INTO todos (task) VALUES ($1)", [task]);
 
     res.redirect("/");
   } catch (err) {
@@ -187,7 +281,7 @@ app.post("/add", async (req, res) => {
   }
 });
 
-/* -------------------- UPDATE TASK -------------------- */
+/* ---------------- EDIT TASK ---------------- */
 
 app.post("/edit/:id", async (req, res) => {
   try {
@@ -206,7 +300,7 @@ app.post("/edit/:id", async (req, res) => {
   }
 });
 
-/* -------------------- TOGGLE COMPLETION -------------------- */
+/* ---------------- TOGGLE TASK ---------------- */
 
 app.post("/toggle/:id", async (req, res) => {
   try {
@@ -224,16 +318,13 @@ app.post("/toggle/:id", async (req, res) => {
   }
 });
 
-/* -------------------- DELETE TASK -------------------- */
+/* ---------------- DELETE TASK ---------------- */
 
 app.post("/delete/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    await pool.query(
-      "DELETE FROM todos WHERE id=$1",
-      [id]
-    );
+    await pool.query("DELETE FROM todos WHERE id=$1", [id]);
 
     res.redirect("/");
   } catch (err) {
@@ -242,8 +333,8 @@ app.post("/delete/:id", async (req, res) => {
   }
 });
 
-/* -------------------- START SERVER -------------------- */
+/* ---------------- START SERVER ---------------- */
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(\`Server running on port \${port}\`);
 });
