@@ -119,7 +119,7 @@ app.get("/", async (req, res) => {
       </head>
       <body>
         <div class="container">
-          <h1>Cloud Todo App 🚀</h1>
+          <h1>Cloud Tod App 🚀</h1>
 
           <form method="POST" action="/add">
             <input type="text" name="task" placeholder="Enter task" required />
